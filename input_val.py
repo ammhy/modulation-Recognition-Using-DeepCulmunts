@@ -35,6 +35,71 @@ filtered_IQ_samples = np.stack((filtered_I_component, filtered_Q_component), axi
 # 数据归一化
 filtered_IQ_samples = filtered_IQ_samples / np.max(np.abs(filtered_IQ_samples))
 
+
+# 原始完整数据
+X_full = filtered_IQ_samples
+y_full = filtered_labels
+SNR_full = filtered_SNR
+
+# 首次分割：训练+临时集（80%训练，20%临时）
+X_train, X_temp, y_train, y_temp, SNR_train, SNR_temp = train_test_split(
+    X_full, y_full, SNR_full,
+    test_size=0.2,
+    stratify=y_full,  # 保持类别分布
+    random_state=42
+)
+
+# 二次分割：验证+测试集（各占 10%）
+X_val, X_test, y_val, y_test, SNR_val, SNR_test = train_test_split(
+    X_temp, y_temp, SNR_temp,
+    test_size=0.5,
+    stratify=y_temp,  # 保持类别分布
+    random_state=42
+)
+
+# 新增验证集 Tensor 转换
+X_val = torch.tensor(X_val, dtype=torch.float32)
+y_val = torch.tensor(y_val, dtype=torch.long)
+SNR_val = torch.tensor(SNR_val, dtype=torch.float32)
+
+# 训练集和测试集的 Tensor 转换
+X_train = torch.tensor(X_train, dtype=torch.float32)
+y_train = torch.tensor(y_train, dtype=torch.long)
+SNR_train = torch.tensor(SNR_train, dtype=torch.float32)
+
+X_test = torch.tensor(X_test, dtype=torch.float32)
+y_test = torch.tensor(y_test, dtype=torch.long)
+SNR_test = torch.tensor(SNR_test, dtype=torch.float32)
+
+# 统计每个集合中每种 label 的数量
+def count_labels(labels):
+    unique_labels, counts = np.unique(labels, return_counts=True)
+    label_count_dict = dict(zip(unique_labels, counts))
+    return label_count_dict
+
+
+train_label_count = count_labels(y_train)
+val_label_count = count_labels(y_val)
+test_label_count = count_labels(y_test)
+
+# 输出结果
+print("训练集中每种 label 的数量：")
+for label, count in train_label_count.items():
+    print(f"Label: {label}, Count: {count}")
+
+print("\n验证集中每种 label 的数量：")
+for label, count in val_label_count.items():
+    print(f"Label: {label}, Count: {count}")
+
+print("\n测试集中每种 label 的数量：")
+for label, count in test_label_count.items():
+    print(f"Label: {label}, Count: {count}")
+
+
+# 检查 filtered_IQ_samples 的维度
+#print(f"filtered_IQ_samples 形状: {filtered_IQ_samples.shape}")  # 应该是 (样本数, 1024, 2)
+
+'''
 # 划分数据集 (训练集和测试集)
 X_train, X_test, y_train, y_test, SNR_train, SNR_test = train_test_split(
     filtered_IQ_samples, filtered_labels, filtered_SNR, test_size=0.2, random_state=42
@@ -60,3 +125,4 @@ y_train = torch.tensor(y_train, dtype=torch.long)
 X_test = torch.tensor(X_test, dtype=torch.float32)
 y_test = torch.tensor(y_test, dtype=torch.long)
 SNR_test = torch.tensor(SNR_test, dtype=torch.float32)
+'''
